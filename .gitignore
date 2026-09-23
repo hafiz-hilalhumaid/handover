@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+*.log
+dist/
+build/
+coverage/
+pgdata/
+Thumbs.db
+.DS_Store
