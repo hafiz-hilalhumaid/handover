@@ -15,13 +15,15 @@ CREATE TABLE units (
     unit_number  text         NOT NULL,
     floor        integer,
     created_at   timestamptz  NOT NULL DEFAULT now(),
-    UNIQUE (project_id, unit_number)
+    UNIQUE (project_id, unit_number),
+    -- Needed so handover_items can point at the pair, not just the id.
+    UNIQUE (id, project_id)
 );
 
 CREATE TABLE handover_items (
     id           bigserial    PRIMARY KEY,
     project_id   bigint       NOT NULL REFERENCES projects(id),
-    unit_id      bigint       REFERENCES units(id),
+    unit_id      bigint,
     location     text         NOT NULL,
     description  text         NOT NULL,
     trade        text         NOT NULL,
@@ -31,7 +33,12 @@ CREATE TABLE handover_items (
                  CHECK (status IN ('open', 'in_progress', 'fixed', 'verified', 'closed', 'rejected')),
     raised_at    timestamptz  NOT NULL DEFAULT now(),
     resolved_at  timestamptz,
-    CHECK (resolved_at IS NULL OR resolved_at >= raised_at)
+    CHECK (resolved_at IS NULL OR resolved_at >= raised_at),
+    -- The unit must exist AND belong to the same project as the defect.
+    -- unit_id stays nullable for common-area defects: with the default
+    -- MATCH SIMPLE, a NULL in the key skips the check entirely.
+    CONSTRAINT handover_items_unit_in_same_project
+        FOREIGN KEY (unit_id, project_id) REFERENCES units (id, project_id)
 );
 
 -- Sample data. Rerunning the file rebuilds everything from scratch.
